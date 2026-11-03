@@ -59,7 +59,7 @@ function initAuth() {
         body: JSON.stringify({ password })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         authToken = data.token;
         localStorage.setItem('ps_admin_token', authToken);
