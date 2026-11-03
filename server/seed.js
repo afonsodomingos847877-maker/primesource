@@ -38,8 +38,8 @@ async function seedDatabase() {
     }
   });
 
-  // 2. AS 9 ÁREAS DE ACTUAÇÃO E SERVIÇOS
-  console.log('[Seed] A actualizar as 9 áreas de actuação e fornecimento...');
+  // 2. AS 10 ÁREAS DE ACTUAÇÃO E SERVIÇOS
+  console.log('[Seed] A actualizar as 10 áreas de actuação e fornecimento...');
   await Service.deleteMany({});
   await Service.insertMany([
     {
@@ -186,6 +186,22 @@ async function seedDatabase() {
       ],
       imagem: '/assets/images/servicos-tecnicos-instalacao.jpg',
       ordem: 9
+    },
+    {
+      numero: '10',
+      slug: 'redes-electricas',
+      titulo: 'Redes Eléctricas e Distribuição de Energia',
+      descricao: 'Fornecimento, instalação, manutenção e assistência técnica de materiais e equipamentos destinados às redes eléctricas e à distribuição de energia.',
+      produtos_servicos: [
+        'Transformadores de potência.',
+        'Pinças de amarração.',
+        'Contadores de energia eléctrica.',
+        'Cabos e condutores eléctricos.',
+        'Postes e acessórios para redes eléctricas.',
+        'Outros materiais e equipamentos para redes de distribuição de energia.'
+      ],
+      imagem: '/assets/images/sobre-energia-redes.jpg',
+      ordem: 10
     }
   ]);
 
