@@ -172,6 +172,193 @@ app.get('/api/quotes', async (req, res) => {
   }
 });
 
+
+/* ==========================================================================
+   ADMIN AUTHENTICATION & MANAGEMENT ENDPOINTS
+   ========================================================================== */
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'primesource2026!';
+const ADMIN_SECRET_TOKEN = 'ps-admin-auth-' + (process.env.ADMIN_SECRET || 'primesource2026-secure-session');
+
+// Middleware de verificação de sessão administrativa
+const requireAdmin = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const adminKey = req.headers['x-admin-key'];
+  if ((authHeader && authHeader === `Bearer ${ADMIN_SECRET_TOKEN}`) || adminKey === ADMIN_PASSWORD) {
+    return next();
+  }
+  return res.status(401).json({ error: 'Acesso não autorizado. Inicie sessão no painel administrativo.' });
+};
+
+// 8. Iniciar Sessão Administrativa (Login)
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (password === ADMIN_PASSWORD) {
+    return res.json({
+      success: true,
+      token: ADMIN_SECRET_TOKEN,
+      message: 'Sessão administrativa iniciada com sucesso.'
+    });
+  }
+  return res.status(401).json({ error: 'Palavra-passe administrativa incorreta.' });
+});
+
+// 9. Estatísticas Gerais para o Painel Admin
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+  try {
+    const [servicesCount, quotesCount, quotesPending, sectorsCount] = await Promise.all([
+      Service.countDocuments(),
+      Quote.countDocuments(),
+      Quote.countDocuments({ status: 'pendente' }),
+      Sector.countDocuments()
+    ]);
+    res.json({
+      servicesCount,
+      quotesCount,
+      quotesPending,
+      sectorsCount,
+      database: 'MongoDB primesourcedb',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao obter estatísticas.', details: error.message });
+  }
+});
+
+// 10. Criar Nova Área de Actuação / Serviço
+app.post('/api/services', requireAdmin, async (req, res) => {
+  try {
+    const { numero, slug, titulo, descricao, produtos_servicos, imagem, ordem, activo } = req.body;
+    if (!numero || !titulo || !descricao) {
+      return res.status(400).json({ error: 'Número, Título e Descrição são obrigatórios.' });
+    }
+    const cleanSlug = slug || titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const newService = await Service.create({
+      numero,
+      slug: cleanSlug,
+      titulo,
+      descricao,
+      produtos_servicos: Array.isArray(produtos_servicos) ? produtos_servicos : (produtos_servicos ? produtos_servicos.split('\n').map(s => s.trim()).filter(Boolean) : []),
+      imagem: imagem || '/assets/images/procurement-equipamentos.jpg',
+      ordem: Number(ordem) || 0,
+      activo: activo !== false
+    });
+    res.status(201).json({ success: true, service: newService });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao criar serviço.', details: error.message });
+  }
+});
+
+// 11. Actualizar Área de Actuação / Serviço Existente
+app.put('/api/services/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { numero, slug, titulo, descricao, produtos_servicos, imagem, ordem, activo } = req.body;
+    const updated = await Service.findByIdAndUpdate(
+      id,
+      {
+        numero,
+        slug,
+        titulo,
+        descricao,
+        produtos_servicos: Array.isArray(produtos_servicos) ? produtos_servicos : (produtos_servicos ? produtos_servicos.split('\n').map(s => s.trim()).filter(Boolean) : []),
+        imagem,
+        ordem: Number(ordem) || 0,
+        activo: Boolean(activo)
+      },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ error: 'Serviço não encontrado.' });
+    res.json({ success: true, service: updated });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao atualizar serviço.', details: error.message });
+  }
+});
+
+// 12. Eliminar Área de Actuação / Serviço
+app.delete('/api/services/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Service.findByIdAndDelete(id);
+    res.json({ success: true, message: 'Serviço eliminado com sucesso.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao eliminar serviço.', details: error.message });
+  }
+});
+
+// 13. Actualizar Dados Institucionais da Empresa
+app.put('/api/company', requireAdmin, async (req, res) => {
+  try {
+    const {
+      nome,
+      email,
+      telefones,
+      whatsapp,
+      descricao_institucional,
+      redes_electricas,
+      missao,
+      visao,
+      valores,
+      objecto_principal
+    } = req.body;
+
+    let company = await Company.findOne();
+    if (!company) {
+      company = new Company({
+        nome: nome || 'PrimeSource Procurement and Services',
+        descricao_institucional: descricao_institucional || '',
+        missao: missao || '',
+        visao: visao || '',
+        objecto_principal: objecto_principal || ''
+      });
+    }
+
+    if (nome) company.nome = nome;
+    if (email) company.email = email;
+    if (telefones) company.telefones = Array.isArray(telefones) ? telefones : telefones.split(',').map(s => s.trim()).filter(Boolean);
+    if (whatsapp) company.whatsapp = Array.isArray(whatsapp) ? whatsapp : whatsapp.split(',').map(s => s.trim()).filter(Boolean);
+    if (descricao_institucional) company.descricao_institucional = descricao_institucional;
+    if (redes_electricas) company.redes_electricas = redes_electricas;
+    if (missao) company.missao = missao;
+    if (visao) company.visao = visao;
+    if (valores) company.valores = Array.isArray(valores) ? valores : valores.split('\n').map(s => s.trim()).filter(Boolean);
+    if (objecto_principal) company.objecto_principal = objecto_principal;
+    company.actualizado_em = new Date();
+
+    await company.save();
+    res.json({ success: true, message: 'Dados institucionais atualizados com sucesso.', company });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao atualizar dados institucionais.', details: error.message });
+  }
+});
+
+// 14. Actualizar Estado e Notas de um Pedido de Cotação
+app.patch('/api/quotes/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notas_internas } = req.body;
+    const updatePayload = {};
+    if (status) updatePayload.status = status;
+    if (notas_internas !== undefined) updatePayload.notas_internas = notas_internas;
+
+    const updated = await Quote.findByIdAndUpdate(id, updatePayload, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Pedido não encontrado.' });
+    res.json({ success: true, quote: updated });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao atualizar pedido.', details: error.message });
+  }
+});
+
+// 15. Eliminar Pedido de Cotação
+app.delete('/api/quotes/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Quote.findByIdAndDelete(id);
+    res.json({ success: true, message: 'Pedido eliminado com sucesso.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao eliminar pedido.', details: error.message });
+  }
+});
+
 // Start Server locally if not running as serverless function (Vercel)
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {

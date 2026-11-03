@@ -25,6 +25,7 @@ export default defineConfig({
         servicos: resolve(import.meta.dirname, 'servicos.html'),
         sectores: resolve(import.meta.dirname, 'sectores.html'),
         contactos: resolve(import.meta.dirname, 'contactos.html'),
+        admin: resolve(import.meta.dirname, 'admin.html'),
         politica: resolve(import.meta.dirname, 'politica-privacidade.html'),
         notfound: resolve(import.meta.dirname, '404.html')
       }

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Gestão e Administração | PrimeSource Procurement and Services</title>
+  
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png">
+
+  <!-- Core Styles -->
+  <link rel="stylesheet" href="/src/styles/variables.css">
+  <link rel="stylesheet" href="/src/styles/admin.css">
+</head>
+<body class="admin-body">
+
+  <!-- ========================================================================
+       1. LOGIN OVERLAY SCREEN
+       ======================================================================== -->
+  <div id="loginScreen" class="admin-login-screen">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="/assets/brand/primesource-logo.png" alt="PrimeSource" class="login-logo">
+        <h2>Painel Administrativo</h2>
+        <p>Aceda para gerir serviços, conteúdos institucionais e pedidos de cotação.</p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="adminPassword" class="form-label">Palavra-passe de Acesso</label>
+          <div class="password-wrapper">
+            <input type="password" id="adminPassword" class="form-input" placeholder="Introduza a palavra-passe..." required autofocus autocomplete="current-password">
+            <button type="button" id="togglePasswordBtn" class="btn-toggle-pwd" title="Mostrar/Ocultar">
+              <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="loginError" class="alert-error" style="display: none;"></div>
+
+        <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-block">
+          <span>Iniciar Sessão</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <a href="/" class="login-back-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar ao Website Oficial
+        </a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================
+       2. MAIN APPLICATION SHELL
+       ======================================================================== -->
+  <div id="adminApp" class="admin-app" style="display: none;">
+
+    <!-- TOP HEADER -->
+    <header class="admin-topbar">
+      <div class="topbar-left">
+        <button id="sidebarToggle" class="sidebar-toggle" aria-label="Menu Lateral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <a href="/admin.html" class="admin-brand">
+          <img src="/assets/brand/primesource-logo.png" alt="PrimeSource" class="admin-brand-logo">
+          <span class="admin-brand-badge">Gestão & Controlo</span>
+        </a>
+      </div>
+
+      <div class="topbar-right">
+        <a href="/" target="_blank" class="btn-topbar-link" title="Abrir o Website Oficial numa nova aba">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span>Ver Website</span>
+        </a>
+
+        <div class="user-pill">
+          <div class="user-avatar">AD</div>
+          <div class="user-info">
+            <span class="user-name">Administrador</span>
+            <span class="user-role">PrimeSource Portal</span>
+          </div>
+        </div>
+
+        <button id="logoutBtn" class="btn-logout" title="Terminar Sessão">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Sair</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="admin-layout">
+
+      <!-- SIDEBAR NAVIGATION -->
+      <aside id="adminSidebar" class="admin-sidebar">
+        <nav class="sidebar-nav">
+          <div class="nav-section-label">Módulos de Gestão</div>
+          
+          <button class="nav-item active" data-tab="tabDashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Visão Geral</span>
+          </button>
+
+          <button class="nav-item" data-tab="tabQuotes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>Pedidos de Cotação</span>
+            <span id="badgePendingQuotes" class="counter-badge" style="display: none;">0</span>
+          </button>
+
+          <button class="nav-item" data-tab="tabServices">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <span>Áreas de Actuação (Serviços)</span>
+          </button>
+
+          <button class="nav-item" data-tab="tabCompany">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <span>Dados Institucionais</span>
+          </button>
+
+          <div class="nav-section-label" style="margin-top: 1.5rem;">Sistema & Dados</div>
+          <div class="db-status-box">
+            <div class="status-indicator online"></div>
+            <div>
+              <div class="db-title">MongoDB Atlas</div>
+              <div class="db-sub">primesourcedb online</div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- MAIN CONTENT VIEW -->
+      <main class="admin-main">
+
+        <!-- ==================================================================
+             TAB 1: DASHBOARD / VISÃO GERAL
+             ================================================================== -->
+        <section id="tabDashboard" class="tab-pane active">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">Visão Geral</h1>
+              <p class="view-desc">Monitorização e resumo das operações e pedidos do website PrimeSource.</p>
+            </div>
+            <div class="view-actions">
+              <button id="refreshStatsBtn" class="btn btn-secondary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Actualizar Dados</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI STATS CARDS -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon-wrapper orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div class="stat-meta">
+                <span class="stat-value" id="statTotalQuotes">-</span>
+                <span class="stat-label">Total Pedidos de Cotação</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper red">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="stat-meta">
+                <span class="stat-value" id="statPendingQuotes">-</span>
+                <span class="stat-label">Pedidos Pendentes</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              </div>
+              <div class="stat-meta">
+                <span class="stat-value" id="statTotalServices">-</span>
+                <span class="stat-label">Áreas de Actuação Ativas</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="stat-meta">
+                <span class="stat-value">Operacional</span>
+                <span class="stat-label">Estado da Base de Dados</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RECENT QUOTES PREVIEW -->
+          <div class="content-card mt-4">
+            <div class="card-header">
+              <h3>Últimos Pedidos de Cotação Recebidos</h3>
+              <button class="btn-text" id="viewAllQuotesBtn">Ver todos &rarr;</button>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Cliente / Empresa</th>
+                    <th>Área Solicitada</th>
+                    <th>Estado</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="recentQuotesTbody">
+                  <tr><td colspan="5" class="text-center p-4">A carregar pedidos recentes...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================================================================
+             TAB 2: PEDIDOS DE COTAÇÃO (RFQs)
+             ================================================================== -->
+        <section id="tabQuotes" class="tab-pane">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">Pedidos de Cotação</h1>
+              <p class="view-desc">Consulte, responda e altere o estado dos pedidos de cotação submetidos pelos clientes.</p>
+            </div>
+            <div class="view-actions">
+              <button id="exportQuotesCsvBtn" class="btn btn-secondary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Exportar CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- FILTERS BAR -->
+          <div class="filters-bar">
+            <div class="search-input-wrapper">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="quotesSearchInput" placeholder="Pesquisar por cliente, empresa ou email...">
+            </div>
+
+            <div class="status-filter-group">
+              <button class="status-chip active" data-status="all">Todos</button>
+              <button class="status-chip" data-status="pendente">Pendentes</button>
+              <button class="status-chip" data-status="em_analise">Em Análise</button>
+              <button class="status-chip" data-status="respondido">Respondidos</button>
+              <button class="status-chip" data-status="concluido">Concluídos</button>
+            </div>
+          </div>
+
+          <!-- QUOTES TABLE -->
+          <div class="content-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Empresa</th>
+                    <th>Contactos</th>
+                    <th>Área de Interesse</th>
+                    <th>Estado</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="quotesTableBody">
+                  <tr><td colspan="7" class="text-center p-4">A carregar pedidos de cotação...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================================================================
+             TAB 3: ÁREAS DE ACTUAÇÃO / SERVIÇOS
+             ================================================================== -->
+        <section id="tabServices" class="tab-pane">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">Áreas de Actuação & Serviços</h1>
+              <p class="view-desc">Faça a gestão manual de títulos, descrições, itens e imagens das 10 áreas do catálogo.</p>
+            </div>
+            <div class="view-actions">
+              <button id="addServiceBtn" class="btn btn-primary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Nova Área de Actuação</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="servicesCardsGrid" class="services-admin-grid">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+
+
+        <!-- ==================================================================
+             TAB 4: DADOS INSTITUCIONAIS DA EMPRESA
+             ================================================================== -->
+        <section id="tabCompany" class="tab-pane">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">Dados Institucionais da Empresa</h1>
+              <p class="view-desc">Actualize os contactos oficiais, emails, telefones, missão, visão e objecto principal.</p>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <form id="companyForm">
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="companyNome" class="form-label">Nome Oficial da Empresa</label>
+                  <input type="text" id="companyNome" class="form-input" required>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="companyEmail" class="form-label">Email Oficial</label>
+                  <input type="email" id="companyEmail" class="form-input" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="companyTelefones" class="form-label">Telefones (separados por vírgula)</label>
+                  <input type="text" id="companyTelefones" class="form-input" placeholder="+258 84 331 8434, +258 84 700 8172">
+                </div>
+                <div class="form-group flex-1">
+                  <label for="companyWhatsapp" class="form-label">WhatsApp (separados por vírgula)</label>
+                  <input type="text" id="companyWhatsapp" class="form-input" placeholder="+258 84 331 8434, +258 84 700 8172">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="companyDescricao" class="form-label">Apresentação Institucional (Sobre Nós)</label>
+                <textarea id="companyDescricao" class="form-textarea" rows="3" required></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="companyMissao" class="form-label">Missão Corporativa</label>
+                  <textarea id="companyMissao" class="form-textarea" rows="2" required></textarea>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="companyVisao" class="form-label">Visão Estratégica</label>
+                  <textarea id="companyVisao" class="form-textarea" rows="2" required></textarea>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="companyValores" class="form-label">Valores Corporativos (um por linha)</label>
+                <textarea id="companyValores" class="form-textarea" rows="4" placeholder="Integridade&#10;Qualidade&#10;Compromisso&#10;Inovação&#10;Foco no cliente"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="companyObjecto" class="form-label">Objecto Principal da Empresa</label>
+                <textarea id="companyObjecto" class="form-textarea" rows="4" required></textarea>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" id="saveCompanyBtn" class="btn btn-primary">
+                  <span>Guardar Alterações Institucionais</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================
+       3. MODAL: EDITAR / CRIAR SERVIÇO
+       ======================================================================== -->
+  <div id="serviceModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="serviceModalTitle">Editar Área de Actuação</h3>
+        <button class="modal-close" id="closeServiceModalBtn">&times;</button>
+      </div>
+      <form id="serviceForm">
+        <input type="hidden" id="serviceFormId">
+        
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group" style="max-width: 120px;">
+              <label for="serviceNumero" class="form-label">Número</label>
+              <input type="text" id="serviceNumero" class="form-input" placeholder="Ex: 01" required>
+            </div>
+            <div class="form-group flex-1">
+              <label for="serviceTitulo" class="form-label">Título da Área</label>
+              <input type="text" id="serviceTitulo" class="form-input" placeholder="Ex: Comércio de material industrial" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="serviceSlug" class="form-label">Slug (identificador URL)</label>
+              <input type="text" id="serviceSlug" class="form-input" placeholder="Ex: material-industrial">
+            </div>
+            <div class="form-group" style="max-width: 140px;">
+              <label for="serviceOrdem" class="form-label">Ordem (1-10)</label>
+              <input type="number" id="serviceOrdem" class="form-input" min="1" max="99" value="1">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="serviceImagem" class="form-label">Caminho da Imagem</label>
+            <input type="text" id="serviceImagem" class="form-input" placeholder="/assets/images/...">
+          </div>
+
+          <div class="form-group">
+            <label for="serviceDescricao" class="form-label">Descrição Resumida</label>
+            <textarea id="serviceDescricao" class="form-textarea" rows="3" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="serviceProdutos" class="form-label">Lista de Produtos / Equipamentos (um por linha)</label>
+            <textarea id="serviceProdutos" class="form-textarea" rows="5" placeholder="Item 1&#10;Item 2&#10;Item 3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="serviceActivo" checked>
+              <span>Área activa e visível no website</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelServiceBtn">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="saveServiceBtn">Guardar Área</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================
+       4. MODAL: DETALHES DO PEDIDO DE COTAÇÃO
+       ======================================================================== -->
+  <div id="quoteModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Detalhes do Pedido de Cotação</h3>
+        <button class="modal-close" id="closeQuoteModalBtn">&times;</button>
+      </div>
+      <div class="modal-body" id="quoteModalBody">
+        <!-- Dynamically rendered -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="closeQuoteBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Admin Script -->
+  <script type="module" src="/src/scripts/admin.js"></script>
+</body>
+</html>
+

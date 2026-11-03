@@ -1,3 +1,4 @@
+import './dynamic-services.js';
 /**
  * PrimeSource Procurement and Services - Main Application Script
  */
