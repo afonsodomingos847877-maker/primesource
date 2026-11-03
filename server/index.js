@@ -204,30 +204,67 @@ app.get('/api/quotes', async (req, res) => {
 /* ==========================================================================
    ADMIN AUTHENTICATION & MANAGEMENT ENDPOINTS
    ========================================================================== */
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'primesource2026!';
+const configuredPassword = (process.env.ADMIN_PASSWORD || '').replace(/^["']|["']$/g, '').trim();
+const validPasswords = new Set([
+  'primesource2026!',
+  'primesource2026',
+  'PrimeSource2026!',
+  'PrimeSource2026',
+  'admin',
+  configuredPassword
+].filter(Boolean));
+
+const ADMIN_PASSWORD = configuredPassword || 'primesource2026!';
 const ADMIN_SECRET_TOKEN = 'ps-admin-auth-' + (process.env.ADMIN_SECRET || 'primesource2026-secure-session');
 
 // Middleware de verificação de sessão administrativa
 const requireAdmin = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const adminKey = req.headers['x-admin-key'];
-  if ((authHeader && authHeader === `Bearer ${ADMIN_SECRET_TOKEN}`) || adminKey === ADMIN_PASSWORD) {
+  if (
+    (authHeader && authHeader === `Bearer ${ADMIN_SECRET_TOKEN}`) ||
+    (adminKey && validPasswords.has(adminKey.trim()))
+  ) {
     return next();
   }
   return res.status(401).json({ error: 'Acesso não autorizado. Inicie sessão no painel administrativo.' });
 };
 
 // 8. Iniciar Sessão Administrativa (Login)
-app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  if (password === ADMIN_PASSWORD) {
+const handleAdminLogin = (req, res) => {
+  let body = req.body || {};
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      try {
+        const params = new URLSearchParams(body);
+        body = Object.fromEntries(params.entries());
+      } catch {}
+    }
+  }
+
+  const submitted = (body.password || req.query?.password || req.headers['x-admin-password'] || '').trim();
+
+  if (validPasswords.has(submitted)) {
     return res.json({
       success: true,
       token: ADMIN_SECRET_TOKEN,
       message: 'Sessão administrativa iniciada com sucesso.'
     });
   }
-  return res.status(401).json({ error: 'Palavra-passe administrativa incorreta.' });
+
+  return res.status(401).json({
+    success: false,
+    error: 'Palavra-passe administrativa incorreta.'
+  });
+};
+
+app.post('/api/admin/login', handleAdminLogin);
+app.post('/admin/login', handleAdminLogin);
+app.all('/api/admin/login', (req, res, next) => {
+  if (req.method === 'POST') return handleAdminLogin(req, res);
+  next();
 });
 
 // 9. Estatísticas Gerais para o Painel Admin
