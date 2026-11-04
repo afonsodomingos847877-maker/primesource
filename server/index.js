@@ -7,6 +7,7 @@ import Service from './models/Service.js';
 import Pillar from './models/Pillar.js';
 import Sector from './models/Sector.js';
 import Quote from './models/Quote.js';
+import Admin from './models/Admin.js';
 
 dotenv.config();
 
@@ -230,8 +231,8 @@ const requireAdmin = (req, res, next) => {
   return res.status(401).json({ error: 'Acesso não autorizado. Inicie sessão no painel administrativo.' });
 };
 
-// 8. Iniciar Sessão Administrativa (Login)
-const handleAdminLogin = (req, res) => {
+// 8. Iniciar Sessão Administrativa (Login) - Valida na base de dados MongoDB e variáveis de ambiente
+const handleAdminLogin = async (req, res) => {
   let body = req.body || {};
   if (typeof body === 'string') {
     try {
@@ -246,7 +247,42 @@ const handleAdminLogin = (req, res) => {
 
   const submitted = (body.password || req.query?.password || req.headers['x-admin-password'] || '').trim();
 
-  if (validPasswords.has(submitted)) {
+  let isAuthorized = validPasswords.has(submitted);
+
+  // Validação e registo na base de dados MongoDB (tabela Admin)
+  try {
+    await connectDB();
+    const dbAdmin = await Admin.findOne({
+      $or: [
+        { password: submitted },
+        { username: 'admin' }
+      ]
+    });
+
+    if (dbAdmin) {
+      if (dbAdmin.password === submitted) {
+        isAuthorized = true;
+      }
+      if (isAuthorized) {
+        dbAdmin.ultimo_login = new Date();
+        await dbAdmin.save().catch(() => {});
+        console.log('[Admin Login] Autenticado com sucesso via base de dados MongoDB!');
+      }
+    } else if (isAuthorized) {
+      await Admin.create({
+        username: 'admin',
+        password: submitted,
+        email: 'info@primesourceps.co.mz',
+        nome: 'Administrador PrimeSource',
+        ultimo_login: new Date()
+      }).catch(() => {});
+      console.log('[Admin Login] Novo registo de admin guardado na base de dados MongoDB.');
+    }
+  } catch (dbErr) {
+    console.warn('[Admin DB Check]', dbErr.message);
+  }
+
+  if (isAuthorized) {
     return res.json({
       success: true,
       token: ADMIN_SECRET_TOKEN,
