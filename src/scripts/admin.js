@@ -487,6 +487,82 @@ function initServicesModule() {
   const cancelServiceBtn = document.getElementById('cancelServiceBtn');
   const serviceForm = document.getElementById('serviceForm');
 
+  const imageFileInput = document.getElementById('serviceImageFile');
+  const triggerImageUploadBtn = document.getElementById('triggerImageUploadBtn');
+  const triggerImageUploadChangeBtn = document.getElementById('triggerImageUploadChangeBtn');
+  const removeServiceImageBtn = document.getElementById('removeServiceImageBtn');
+  const imagePreviewContainer = document.getElementById('serviceImagePreviewContainer');
+  const imagePreview = document.getElementById('serviceImagePreview');
+  const serviceImageInput = document.getElementById('serviceImagem');
+
+  // Trigger manual image file dialog
+  triggerImageUploadBtn?.addEventListener('click', () => imageFileInput?.click());
+  triggerImageUploadChangeBtn?.addEventListener('click', () => imageFileInput?.click());
+
+  // Handle image upload and client-side optimization
+  imageFileInput?.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione um ficheiro de imagem válido (JPG, PNG ou WebP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1200;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        serviceImageInput.value = optimizedBase64;
+        imagePreview.src = optimizedBase64;
+        imagePreviewContainer.style.display = 'block';
+        showToast('Imagem carregada com sucesso!', 'success');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Remove image
+  removeServiceImageBtn?.addEventListener('click', () => {
+    serviceImageInput.value = '';
+    imagePreview.src = '';
+    imagePreviewContainer.style.display = 'none';
+    if (imageFileInput) imageFileInput.value = '';
+  });
+
+  // Manual URL input sync
+  serviceImageInput?.addEventListener('input', () => {
+    const val = serviceImageInput.value.trim();
+    if (val) {
+      imagePreview.src = val;
+      imagePreviewContainer.style.display = 'block';
+    } else {
+      imagePreviewContainer.style.display = 'none';
+    }
+  });
+
   closeServiceModalBtn.addEventListener('click', () => serviceModal.style.display = 'none');
   cancelServiceBtn.addEventListener('click', () => serviceModal.style.display = 'none');
 
@@ -498,6 +574,9 @@ function initServicesModule() {
     document.getElementById('serviceSlug').value = '';
     document.getElementById('serviceOrdem').value = currentServices.length + 1;
     document.getElementById('serviceImagem').value = '/assets/images/procurement-equipamentos.jpg';
+    if (imagePreview) imagePreview.src = '/assets/images/procurement-equipamentos.jpg';
+    if (imagePreviewContainer) imagePreviewContainer.style.display = 'block';
+    if (imageFileInput) imageFileInput.value = '';
     document.getElementById('serviceDescricao').value = '';
     document.getElementById('serviceProdutos').value = '';
     document.getElementById('serviceActivo').checked = true;
@@ -597,7 +676,16 @@ window.editService = function(serviceId) {
   document.getElementById('serviceTitulo').value = s.titulo || '';
   document.getElementById('serviceSlug').value = s.slug || '';
   document.getElementById('serviceOrdem').value = s.ordem || 1;
-  document.getElementById('serviceImagem').value = s.imagem || '';
+  const imgVal = s.imagem || '';
+  document.getElementById('serviceImagem').value = imgVal;
+  const imgPrev = document.getElementById('serviceImagePreview');
+  const imgPrevCont = document.getElementById('serviceImagePreviewContainer');
+  if (imgVal && imgPrev && imgPrevCont) {
+    imgPrev.src = imgVal;
+    imgPrevCont.style.display = 'block';
+  } else if (imgPrevCont) {
+    imgPrevCont.style.display = 'none';
+  }
   document.getElementById('serviceDescricao').value = s.descricao || '';
   document.getElementById('serviceProdutos').value = (s.produtos_servicos || []).join('\n');
   document.getElementById('serviceActivo').checked = s.activo !== false;
