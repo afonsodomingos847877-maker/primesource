@@ -6,7 +6,8 @@ const API_BASE = '/api';
 let authToken = localStorage.getItem('ps_admin_token') || '';
 let currentQuotes = [];
 let currentServices = [];
-let currentServiceImages = [];
+let serviceGallery = null;
+let companyGallery = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
@@ -515,46 +516,115 @@ function optimizeImageFile(file, maxDim = 960, quality = 0.8) {
   });
 }
 
-function renderServiceImagesGallery() {
-  const gallery = document.getElementById('serviceImagesGallery');
-  if (!gallery) return;
+/**
+ * Reusable controller for multi-image upload, preview, reorder and manual URL entry.
+ */
+function createGalleryController({ galleryId, fileInputId, uploadBtnId, urlInputId, addUrlBtnId }) {
+  const gallery = document.getElementById(galleryId);
+  const fileInput = document.getElementById(fileInputId);
+  const uploadBtn = document.getElementById(uploadBtnId);
+  const urlInput = document.getElementById(urlInputId);
+  const addUrlBtn = document.getElementById(addUrlBtnId);
+  let images = [];
 
-  if (!currentServiceImages.length) {
-    gallery.innerHTML = '';
-    gallery.style.display = 'none';
-    return;
+  function render() {
+    if (!gallery) return;
+    if (!images.length) {
+      gallery.innerHTML = '';
+      gallery.style.display = 'none';
+      return;
+    }
+
+    gallery.style.display = 'grid';
+    gallery.innerHTML = images.map((src, idx) => `
+      <div class="service-gallery-item">
+        <span class="service-gallery-order ${idx === 0 ? 'primary' : ''}">
+          ${idx === 0 ? 'Principal' : `#${idx + 1}`}
+        </span>
+        <img src="${escapeHtml(src)}" alt="Imagem ${idx + 1}" class="service-gallery-thumb">
+        <div class="service-gallery-actions">
+          <div style="display: flex; gap: 3px;">
+            <button type="button" class="service-gallery-btn" data-action="prev" data-index="${idx}" title="Mover para trás" ${idx === 0 ? 'disabled style="opacity:0.4;cursor:default;"' : ''}>&larr;</button>
+            <button type="button" class="service-gallery-btn" data-action="next" data-index="${idx}" title="Mover para a frente" ${idx === images.length - 1 ? 'disabled style="opacity:0.4;cursor:default;"' : ''}>&rarr;</button>
+          </div>
+          <button type="button" class="service-gallery-btn remove" data-action="remove" data-index="${idx}" title="Remover imagem">&times;</button>
+        </div>
+      </div>
+    `).join('');
   }
 
-  gallery.style.display = 'grid';
-  gallery.innerHTML = currentServiceImages.map((src, idx) => `
-    <div class="service-gallery-item">
-      <span class="service-gallery-order ${idx === 0 ? 'primary' : ''}">
-        ${idx === 0 ? 'Principal' : `#${idx + 1}`}
-      </span>
-      <img src="${escapeHtml(src)}" alt="Imagem ${idx + 1}" class="service-gallery-thumb">
-      <div class="service-gallery-actions">
-        <div style="display: flex; gap: 3px;">
-          <button type="button" class="service-gallery-btn" onclick="moveServiceImage(${idx}, -1)" title="Mover para trás" ${idx === 0 ? 'disabled style="opacity:0.4;cursor:default;"' : ''}>&larr;</button>
-          <button type="button" class="service-gallery-btn" onclick="moveServiceImage(${idx}, 1)" title="Mover para a frente" ${idx === currentServiceImages.length - 1 ? 'disabled style="opacity:0.4;cursor:default;"' : ''}>&rarr;</button>
-        </div>
-        <button type="button" class="service-gallery-btn remove" onclick="removeServiceImageAt(${idx})" title="Remover imagem">&times;</button>
-      </div>
-    </div>
-  `).join('');
+  gallery?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const idx = Number(btn.getAttribute('data-index'));
+    const action = btn.getAttribute('data-action');
+    if (action === 'remove') {
+      images.splice(idx, 1);
+      render();
+    } else if (action === 'prev' && idx > 0) {
+      const [item] = images.splice(idx, 1);
+      images.splice(idx - 1, 0, item);
+      render();
+    } else if (action === 'next' && idx < images.length - 1) {
+      const [item] = images.splice(idx, 1);
+      images.splice(idx + 1, 0, item);
+      render();
+    }
+  });
+
+  uploadBtn?.addEventListener('click', () => fileInput?.click());
+
+  fileInput?.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    if (files.some(f => !f.type.startsWith('image/'))) {
+      showToast('Selecione apenas ficheiros de imagem válidos (JPG, PNG ou WebP).', 'error');
+      fileInput.value = '';
+      return;
+    }
+
+    const originalLabel = uploadBtn.innerHTML;
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = `A processar ${files.length} ${files.length === 1 ? 'imagem' : 'imagens'}...`;
+
+    try {
+      for (const file of files) {
+        const optimized = await optimizeImageFile(file);
+        images.push(optimized);
+      }
+      render();
+      showToast(`${files.length} ${files.length === 1 ? 'imagem adicionada' : 'imagens adicionadas'} à galeria!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Erro ao processar imagem.', 'error');
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = originalLabel;
+      fileInput.value = '';
+    }
+  });
+
+  addUrlBtn?.addEventListener('click', () => {
+    const url = (urlInput?.value || '').trim();
+    if (!url) return;
+    if (!images.includes(url)) {
+      images.push(url);
+      render();
+      showToast('URL de imagem adicionada!', 'success');
+    }
+    urlInput.value = '';
+  });
+
+  return {
+    getImages: () => [...images],
+    setImages: (nextList) => {
+      images = Array.isArray(nextList) ? nextList.filter(Boolean) : [];
+      if (fileInput) fileInput.value = '';
+      if (urlInput) urlInput.value = '';
+      render();
+    }
+  };
 }
-
-window.moveServiceImage = function(index, delta) {
-  const target = index + delta;
-  if (target < 0 || target >= currentServiceImages.length) return;
-  const [item] = currentServiceImages.splice(index, 1);
-  currentServiceImages.splice(target, 0, item);
-  renderServiceImagesGallery();
-};
-
-window.removeServiceImageAt = function(index) {
-  currentServiceImages.splice(index, 1);
-  renderServiceImagesGallery();
-};
 
 function initServicesModule() {
   const addServiceBtn = document.getElementById('addServiceBtn');
@@ -563,58 +633,12 @@ function initServicesModule() {
   const cancelServiceBtn = document.getElementById('cancelServiceBtn');
   const serviceForm = document.getElementById('serviceForm');
 
-  const imageFileInput = document.getElementById('serviceImageFile');
-  const triggerImageUploadBtn = document.getElementById('triggerImageUploadBtn');
-  const manualImageUrlInput = document.getElementById('manualImageUrlInput');
-  const addManualImageUrlBtn = document.getElementById('addManualImageUrlBtn');
-
-  // Trigger manual image file dialog (supports single & multiple files)
-  triggerImageUploadBtn?.addEventListener('click', () => imageFileInput?.click());
-
-  // Handle multi-image upload and client-side optimization
-  imageFileInput?.addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    const invalid = files.find(f => !f.type.startsWith('image/'));
-    if (invalid) {
-      showToast('Selecione apenas ficheiros de imagem válidos (JPG, PNG ou WebP).', 'error');
-      imageFileInput.value = '';
-      return;
-    }
-
-    const originalLabel = triggerImageUploadBtn.innerHTML;
-    triggerImageUploadBtn.disabled = true;
-    triggerImageUploadBtn.textContent = `A processar ${files.length} ${files.length === 1 ? 'imagem' : 'imagens'}...`;
-
-    try {
-      let addedCount = 0;
-      for (const file of files) {
-        const optimized = await optimizeImageFile(file);
-        currentServiceImages.push(optimized);
-        addedCount++;
-      }
-      renderServiceImagesGallery();
-      showToast(`${addedCount} ${addedCount === 1 ? 'imagem adicionada' : 'imagens adicionadas'} à galeria!`, 'success');
-    } catch (err) {
-      showToast(err.message || 'Erro ao processar imagem.', 'error');
-    } finally {
-      triggerImageUploadBtn.disabled = false;
-      triggerImageUploadBtn.innerHTML = originalLabel;
-      imageFileInput.value = '';
-    }
-  });
-
-  // Add manual URL/path to gallery
-  addManualImageUrlBtn?.addEventListener('click', () => {
-    const url = (manualImageUrlInput?.value || '').trim();
-    if (!url) return;
-    if (!currentServiceImages.includes(url)) {
-      currentServiceImages.push(url);
-      renderServiceImagesGallery();
-      showToast('URL de imagem adicionada!', 'success');
-    }
-    manualImageUrlInput.value = '';
+  serviceGallery = createGalleryController({
+    galleryId: 'serviceImagesGallery',
+    fileInputId: 'serviceImageFile',
+    uploadBtnId: 'triggerImageUploadBtn',
+    urlInputId: 'manualImageUrlInput',
+    addUrlBtnId: 'addManualImageUrlBtn'
   });
 
   closeServiceModalBtn.addEventListener('click', () => serviceModal.style.display = 'none');
@@ -627,10 +651,7 @@ function initServicesModule() {
     document.getElementById('serviceTitulo').value = '';
     document.getElementById('serviceSlug').value = '';
     document.getElementById('serviceOrdem').value = currentServices.length + 1;
-    currentServiceImages = ['/assets/images/procurement-equipamentos.jpg'];
-    renderServiceImagesGallery();
-    if (imageFileInput) imageFileInput.value = '';
-    if (manualImageUrlInput) manualImageUrlInput.value = '';
+    serviceGallery.setImages(['/assets/images/procurement-equipamentos.jpg']);
     document.getElementById('serviceDescricao').value = '';
     document.getElementById('serviceProdutos').value = '';
     document.getElementById('serviceActivo').checked = true;
@@ -639,7 +660,8 @@ function initServicesModule() {
 
   serviceForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!currentServiceImages.length) {
+    const images = serviceGallery.getImages();
+    if (!images.length) {
       showToast('Adicione pelo menos 1 imagem para a área de actuação.', 'error');
       return;
     }
@@ -650,8 +672,8 @@ function initServicesModule() {
       titulo: document.getElementById('serviceTitulo').value.trim(),
       slug: document.getElementById('serviceSlug').value.trim(),
       ordem: Number(document.getElementById('serviceOrdem').value),
-      imagem: currentServiceImages[0],
-      imagens: currentServiceImages,
+      imagem: images[0],
+      imagens: images,
       descricao: document.getElementById('serviceDescricao').value.trim(),
       produtos_servicos: document.getElementById('serviceProdutos').value.split('\n').map(s => s.trim()).filter(Boolean),
       activo: document.getElementById('serviceActivo').checked
@@ -754,15 +776,9 @@ window.editService = function(serviceId) {
   document.getElementById('serviceSlug').value = s.slug || '';
   document.getElementById('serviceOrdem').value = s.ordem || 1;
 
-  currentServiceImages = (Array.isArray(s.imagens) && s.imagens.length)
-    ? [...s.imagens]
-    : (s.imagem ? [s.imagem] : []);
-  renderServiceImagesGallery();
-
-  const fileInput = document.getElementById('serviceImageFile');
-  const manualUrlInput = document.getElementById('manualImageUrlInput');
-  if (fileInput) fileInput.value = '';
-  if (manualUrlInput) manualUrlInput.value = '';
+  serviceGallery?.setImages(
+    (Array.isArray(s.imagens) && s.imagens.length) ? s.imagens : (s.imagem ? [s.imagem] : [])
+  );
 
   document.getElementById('serviceDescricao').value = s.descricao || '';
   document.getElementById('serviceProdutos').value = (s.produtos_servicos || []).join('\n');
@@ -795,11 +811,18 @@ window.deleteService = async function(serviceId) {
    ========================================================================== */
 function initCompanyModule() {
   const form = document.getElementById('companyForm');
+  companyGallery = createGalleryController({
+    galleryId: 'companyImagesGallery',
+    fileInputId: 'companyImageFile',
+    uploadBtnId: 'triggerCompanyImageUploadBtn',
+    urlInputId: 'manualCompanyImageUrlInput',
+    addUrlBtnId: 'addManualCompanyImageUrlBtn'
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const saveBtn = document.getElementById('saveCompanyBtn');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'A guardar...';
+    const imagensInstitucionais = companyGallery ? companyGallery.getImages() : [];
 
     const payload = {
       nome: document.getElementById('companyNome').value.trim(),
@@ -807,11 +830,21 @@ function initCompanyModule() {
       telefones: document.getElementById('companyTelefones').value.split(',').map(s => s.trim()).filter(Boolean),
       whatsapp: document.getElementById('companyWhatsapp').value.split(',').map(s => s.trim()).filter(Boolean),
       descricao_institucional: document.getElementById('companyDescricao').value.trim(),
+      imagens_institucionais: imagensInstitucionais,
       missao: document.getElementById('companyMissao').value.trim(),
       visao: document.getElementById('companyVisao').value.trim(),
       valores: document.getElementById('companyValores').value.split('\n').map(s => s.trim()).filter(Boolean),
       objecto_principal: document.getElementById('companyObjecto').value.trim()
     };
+
+    const payloadBytes = new Blob([JSON.stringify(payload)]).size;
+    if (payloadBytes > 4 * 1024 * 1024) {
+      showToast('O conjunto de imagens excede 4 MB. Remova ou reduza algumas imagens.', 'error');
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'A guardar...';
 
     try {
       const res = await fetch(`${API_BASE}/company`, {
@@ -845,6 +878,11 @@ async function loadCompany() {
     document.getElementById('companyTelefones').value = (c.telefones || []).join(', ');
     document.getElementById('companyWhatsapp').value = (c.whatsapp || []).join(', ');
     document.getElementById('companyDescricao').value = c.descricao_institucional || '';
+    companyGallery?.setImages(
+      Array.isArray(c.imagens_institucionais) && c.imagens_institucionais.length
+        ? c.imagens_institucionais
+        : ['/assets/images/sobre-energia-redes.jpg']
+    );
     document.getElementById('companyMissao').value = c.missao || '';
     document.getElementById('companyVisao').value = c.visao || '';
     document.getElementById('companyValores').value = (c.valores || []).join('\n');

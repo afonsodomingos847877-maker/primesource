@@ -326,7 +326,7 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
   }
 });
 
-function normalizeServiceImages(imagens, imagem) {
+function normalizeImageList(imagens, fallback) {
   const rawList = Array.isArray(imagens)
     ? imagens
     : (typeof imagens === 'string' && imagens.trim() ? [imagens.trim()] : []);
@@ -336,9 +336,14 @@ function normalizeServiceImages(imagens, imagem) {
       cleaned.push(entry.trim());
     }
   }
-  if (!cleaned.length && typeof imagem === 'string' && imagem.trim()) {
-    cleaned.push(imagem.trim());
+  if (!cleaned.length && typeof fallback === 'string' && fallback.trim()) {
+    cleaned.push(fallback.trim());
   }
+  return cleaned;
+}
+
+function normalizeServiceImages(imagens, imagem) {
+  const cleaned = normalizeImageList(imagens, imagem);
   return {
     imagens: cleaned,
     imagem: cleaned[0] || '/assets/images/procurement-equipamentos.jpg'
@@ -419,6 +424,7 @@ app.put('/api/company', requireAdmin, async (req, res) => {
       telefones,
       whatsapp,
       descricao_institucional,
+      imagens_institucionais,
       redes_electricas,
       missao,
       visao,
@@ -442,6 +448,9 @@ app.put('/api/company', requireAdmin, async (req, res) => {
     if (telefones) company.telefones = Array.isArray(telefones) ? telefones : telefones.split(',').map(s => s.trim()).filter(Boolean);
     if (whatsapp) company.whatsapp = Array.isArray(whatsapp) ? whatsapp : whatsapp.split(',').map(s => s.trim()).filter(Boolean);
     if (descricao_institucional) company.descricao_institucional = descricao_institucional;
+    if (Array.isArray(imagens_institucionais)) {
+      company.imagens_institucionais = normalizeImageList(imagens_institucionais);
+    }
     if (redes_electricas) company.redes_electricas = redes_electricas;
     if (missao) company.missao = missao;
     if (visao) company.visao = visao;

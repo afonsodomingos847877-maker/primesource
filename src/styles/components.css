@@ -611,6 +611,7 @@
   position: absolute;
   bottom: -1.5rem;
   right: -1.5rem;
+  z-index: 6;
   background: var(--navy-950);
   color: var(--white);
   padding: 1.5rem;
@@ -2597,4 +2598,30 @@
 
 .service-carousel-arrow.next {
   right: 10px;
+}
+
+/* Institutional presentation slideshow box (keeps floating 100% badge clear) */
+.intro-image-box {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.intro-image-box:hover .service-carousel-arrow {
+  opacity: 1;
+}
+
+.intro-image-box .service-carousel-dots {
+  left: 1.25rem;
+  transform: none;
+  bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .intro-image-box {
+    height: 360px;
+  }
 }

@@ -6,6 +6,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   hydrateServices();
+  hydrateCompany();
 });
 
 function normalizeNumberTag(text) {
@@ -217,6 +218,36 @@ async function hydrateServices() {
         }
       });
     }
+  } catch (err) {
+    // Graceful fallback to static pre-rendered HTML
+  }
+}
+
+async function hydrateCompany() {
+  try {
+    const introWrapper = document.querySelector('.intro-image-wrapper');
+    if (!introWrapper) return;
+
+    const res = await fetch('/api/company');
+    if (!res.ok) return;
+    const company = await res.json();
+
+    const images = Array.isArray(company.imagens_institucionais)
+      ? company.imagens_institucionais.filter(src => typeof src === 'string' && src.trim())
+      : [];
+    if (!images.length) return;
+
+    let imgBox = introWrapper.querySelector('.intro-image-box');
+    if (!imgBox) {
+      const origImg = introWrapper.querySelector('.intro-image');
+      if (!origImg) return;
+      imgBox = document.createElement('div');
+      imgBox.className = 'intro-image-box';
+      introWrapper.insertBefore(imgBox, origImg);
+      imgBox.appendChild(origImg);
+    }
+
+    setupServiceImageCarousel(imgBox, 'intro-image', images, company.nome || 'PrimeSource Procurement and Services', 250);
   } catch (err) {
     // Graceful fallback to static pre-rendered HTML
   }

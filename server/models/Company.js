@@ -8,6 +8,7 @@ const companySchema = new mongoose.Schema({
   telefones: [{ type: String }],
   whatsapp: [{ type: String }],
   descricao_institucional: { type: String, required: true },
+  imagens_institucionais: [{ type: String }],
   redes_electricas: { type: String },
   missao: { type: String, required: true },
   visao: { type: String, required: true },
