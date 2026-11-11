@@ -1,13 +1,15 @@
 /**
  * Dynamic Content Hydration for PrimeSource
  * Fetches latest content from MongoDB API, updates service cards/details,
- * and activates automatic multi-image slideshows when a service has 2+ images.
+ * activates automatic multi-image slideshows, and provides details modals.
  */
 
 const servicesByNumber = new Map();
+let companyData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   initServiceCardDetailsModal();
+  initIntroDetailsModal();
   hydrateServices();
   hydrateCompany();
 });
@@ -64,7 +66,7 @@ function setupServiceImageCarousel(container, imgClass, images, altText, stagger
 
   const dotsWrap = document.createElement('div');
   dotsWrap.className = 'service-carousel-dots';
-  dotsWrap.setAttribute('aria-label', 'Galeria de imagens do serviço');
+  dotsWrap.setAttribute('aria-label', 'Galeria de imagens');
 
   const dots = images.map((_, idx) => {
     const dot = document.createElement('button');
@@ -176,8 +178,8 @@ function createServiceDetailsModal() {
         <div class="service-details-media" id="serviceDetailsMedia">
           <img src="" alt="" class="service-details-media-img">
         </div>
-        <p class="service-details-desc" id="serviceDetailsModalDesc"></p>
-        <h4 class="service-details-subtitle">Equipamentos e Soluções Incluídas</h4>
+        <div class="service-details-paragraphs" id="serviceDetailsModalParagraphs"></div>
+        <h4 class="service-details-subtitle" id="serviceDetailsModalSubtitle">Equipamentos e Soluções Incluídas</h4>
         <div class="service-details-checklist" id="serviceDetailsModalList"></div>
       </div>
       <div class="service-details-footer">
@@ -217,11 +219,82 @@ function createServiceDetailsModal() {
   return backdrop;
 }
 
+function openDetailsModal({
+  kicker,
+  title,
+  paragraphs,
+  itemsSubtitle = 'Equipamentos e Soluções Incluídas',
+  items = [],
+  images = [],
+  pageLink = '',
+  pageLinkText = 'Ver página completa',
+  quoteLink = '/contactos.html'
+}) {
+  const backdrop = createServiceDetailsModal();
+  const kickerEl = document.getElementById('serviceDetailsModalKicker');
+  const titleEl = document.getElementById('serviceDetailsModalTitle');
+  const paragraphsEl = document.getElementById('serviceDetailsModalParagraphs');
+  const subtitleEl = document.getElementById('serviceDetailsModalSubtitle');
+  const listEl = document.getElementById('serviceDetailsModalList');
+  const mediaEl = document.getElementById('serviceDetailsMedia');
+  const pageLinkEl = document.getElementById('serviceDetailsPageLink');
+  const quoteLinkEl = document.getElementById('serviceDetailsQuoteLink');
+
+  kickerEl.textContent = kicker || 'PrimeSource';
+  titleEl.textContent = title || '';
+
+  paragraphsEl.innerHTML = '';
+  (paragraphs || []).filter(Boolean).forEach(text => {
+    const p = document.createElement('p');
+    p.className = 'service-details-desc';
+    p.textContent = text;
+    paragraphsEl.appendChild(p);
+  });
+
+  if (items.length) {
+    subtitleEl.textContent = itemsSubtitle;
+    subtitleEl.style.display = '';
+    listEl.style.display = '';
+    listEl.innerHTML = '';
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'service-details-item';
+      div.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+      const span = document.createElement('span');
+      span.textContent = item;
+      div.appendChild(span);
+      listEl.appendChild(div);
+    });
+  } else {
+    subtitleEl.style.display = 'none';
+    listEl.style.display = 'none';
+  }
+
+  if (mediaEl) {
+    mediaEl.innerHTML = '<img src="" alt="" class="service-details-media-img">';
+    if (images.length) {
+      setupServiceImageCarousel(mediaEl, 'service-details-media-img', images, title, 0);
+    }
+  }
+
+  if (pageLink) {
+    pageLinkEl.href = pageLink;
+    pageLinkEl.textContent = pageLinkText;
+    pageLinkEl.style.display = 'inline-flex';
+  } else {
+    pageLinkEl.style.display = 'none';
+  }
+  quoteLinkEl.href = quoteLink;
+
+  backdrop.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
 function initServiceCardDetailsModal() {
   const cards = document.querySelectorAll('.services-grid .service-card');
   if (!cards.length) return;
 
-  const backdrop = createServiceDetailsModal();
+  createServiceDetailsModal();
 
   function openCardDetails(card) {
     const badge = card.querySelector('.service-num-badge');
@@ -242,49 +315,17 @@ function initServiceCardDetailsModal() {
       images = Array.from(new Set(domImgs));
     }
 
-    const detailLink = card.querySelector('.service-card-link')?.getAttribute('href') || '';
-    const quoteLink = card.querySelector('.service-card-footer .btn')?.getAttribute('href') || '/contactos.html';
-
-    const kickerEl = document.getElementById('serviceDetailsModalKicker');
-    const titleEl = document.getElementById('serviceDetailsModalTitle');
-    const descEl = document.getElementById('serviceDetailsModalDesc');
-    const listEl = document.getElementById('serviceDetailsModalList');
-    const mediaEl = document.getElementById('serviceDetailsMedia');
-    const pageLinkEl = document.getElementById('serviceDetailsPageLink');
-    const quoteLinkEl = document.getElementById('serviceDetailsQuoteLink');
-
-    kickerEl.textContent = numKey ? `Área de Actuação ${numKey}` : 'Área de Actuação';
-    titleEl.textContent = title;
-    descEl.textContent = desc;
-
-    listEl.innerHTML = '';
-    items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'service-details-item';
-      div.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
-      const span = document.createElement('span');
-      span.textContent = item;
-      div.appendChild(span);
-      listEl.appendChild(div);
+    openDetailsModal({
+      kicker: numKey ? `Área de Actuação ${numKey}` : 'Área de Actuação',
+      title,
+      paragraphs: [desc],
+      itemsSubtitle: 'Equipamentos e Soluções Incluídas',
+      items,
+      images,
+      pageLink: card.querySelector('.service-card-link')?.getAttribute('href') || '',
+      pageLinkText: 'Ver página completa',
+      quoteLink: card.querySelector('.service-card-footer .btn')?.getAttribute('href') || '/contactos.html'
     });
-
-    if (mediaEl) {
-      mediaEl.innerHTML = '<img src="" alt="" class="service-details-media-img">';
-      if (images.length) {
-        setupServiceImageCarousel(mediaEl, 'service-details-media-img', images, title, 0);
-      }
-    }
-
-    if (detailLink) {
-      pageLinkEl.href = detailLink;
-      pageLinkEl.style.display = 'inline-flex';
-    } else {
-      pageLinkEl.style.display = 'none';
-    }
-    quoteLinkEl.href = quoteLink;
-
-    backdrop.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
   }
 
   cards.forEach(card => {
@@ -300,6 +341,66 @@ function initServiceCardDetailsModal() {
       openCardDetails(card);
     });
   });
+}
+
+function initIntroDetailsModal() {
+  const openBtn = document.getElementById('openIntroDetailsBtn');
+  const introWrapper = document.querySelector('.intro-image-wrapper');
+  const introContent = document.querySelector('.intro-content');
+  if (!introContent || (!openBtn && !introWrapper)) return;
+
+  createServiceDetailsModal();
+
+  function openIntroModal() {
+    const title = introContent.querySelector('#introHeading, .section-title')?.textContent?.trim() || 'Apresentação Institucional';
+    const domParagraphs = Array.from(introContent.querySelectorAll('p'))
+      .map(p => p.textContent.trim())
+      .filter(Boolean);
+
+    if (companyData && companyData.descricao_institucional && domParagraphs.length) {
+      domParagraphs[0] = companyData.descricao_institucional;
+    }
+
+    const items = Array.from(introContent.querySelectorAll('.feature-check-item'))
+      .map(el => el.textContent.trim())
+      .filter(Boolean);
+
+    let images = (companyData && Array.isArray(companyData.imagens_institucionais))
+      ? companyData.imagens_institucionais.filter(src => typeof src === 'string' && src.trim())
+      : [];
+
+    if (!images.length && introWrapper) {
+      const domImgs = Array.from(introWrapper.querySelectorAll('img'))
+        .map(img => img.getAttribute('src'))
+        .filter(Boolean);
+      images = Array.from(new Set(domImgs));
+    }
+
+    openDetailsModal({
+      kicker: 'Apresentação Institucional',
+      title,
+      paragraphs: domParagraphs,
+      itemsSubtitle: 'Diferenciais Operacionais',
+      items,
+      images,
+      pageLink: '/sobre.html',
+      pageLinkText: 'Conheça a PrimeSource',
+      quoteLink: '/contactos.html'
+    });
+  }
+
+  openBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openIntroModal();
+  });
+
+  if (introWrapper) {
+    introWrapper.classList.add('is-clickable');
+    introWrapper.addEventListener('click', (e) => {
+      if (e.target.closest('.service-carousel-arrow, .service-carousel-dot')) return;
+      openIntroModal();
+    });
+  }
 }
 
 async function hydrateServices() {
@@ -401,6 +502,12 @@ async function hydrateCompany() {
     const res = await fetch('/api/company');
     if (!res.ok) return;
     const company = await res.json();
+    companyData = company;
+
+    const leadEl = document.querySelector('.intro-content .lead');
+    if (leadEl && company.descricao_institucional) {
+      leadEl.textContent = company.descricao_institucional;
+    }
 
     const images = Array.isArray(company.imagens_institucionais)
       ? company.imagens_institucionais.filter(src => typeof src === 'string' && src.trim())

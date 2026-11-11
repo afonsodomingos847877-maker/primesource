@@ -1869,12 +1869,17 @@
   }
   .intro-grid {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
+    gap: 1.75rem;
+  }
+  .intro-content p:not(.lead),
+  .intro-content .feature-check-list {
+    display: none;
   }
   .intro-badge-floating {
     position: static;
-    margin-top: 1rem;
+    margin-top: 0.85rem;
     max-width: 100%;
+    padding: 1rem 1.25rem;
   }
   .commitment-grid {
     grid-template-columns: 1fr;
@@ -2058,6 +2063,34 @@
   }
   .commitment-card {
     padding: 2.5rem 1.5rem;
+  }
+  .intro-image,
+  .intro-image-box {
+    height: 230px;
+  }
+  .intro-content .section-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.65rem;
+  }
+  .intro-content .lead {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .intro-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .intro-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    font-size: 0.85rem;
+    padding: 0.65rem 1rem;
   }
 }
 
@@ -2945,7 +2978,33 @@
   flex-wrap: wrap;
 }
 
+.intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.intro-image-wrapper.is-clickable {
+  cursor: pointer;
+}
+
+.service-details-paragraphs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.service-details-paragraphs .service-details-desc {
+  margin-bottom: 0;
+}
+
 @media (max-width: 640px) {
+  .intro-image,
+  .intro-image-box {
+    height: 230px;
+  }
   .service-details-media {
     height: 190px;
   }
