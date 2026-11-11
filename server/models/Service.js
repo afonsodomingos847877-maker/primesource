@@ -7,6 +7,7 @@ const serviceSchema = new mongoose.Schema({
   descricao: { type: String, required: true },
   produtos_servicos: [{ type: String }],
   imagem: { type: String },
+  imagens: [{ type: String }],
   ordem: { type: Number, default: 0 },
   activo: { type: Boolean, default: true }
 }, { collection: 'services' });

@@ -20,8 +20,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key']
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Normalização de URL para compatibilidade com Vercel Serverless Rewrites e ambiente local
 app.use((req, res, next) => {
@@ -88,7 +88,8 @@ app.get('/api/company', async (req, res) => {
 // 2. Obter as 9 Áreas de Actuação e Serviços
 app.get('/api/services', async (req, res) => {
   try {
-    const services = await Service.find({ activo: true }).sort({ ordem: 1 });
+    const filter = req.query.all === 'true' ? {} : { activo: true };
+    const services = await Service.find(filter).sort({ ordem: 1 });
     res.json(services);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao consultar serviços.', details: error.message });
@@ -325,21 +326,42 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
   }
 });
 
+function normalizeServiceImages(imagens, imagem) {
+  const rawList = Array.isArray(imagens)
+    ? imagens
+    : (typeof imagens === 'string' && imagens.trim() ? [imagens.trim()] : []);
+  const cleaned = [];
+  for (const entry of rawList) {
+    if (typeof entry === 'string' && entry.trim() && !cleaned.includes(entry.trim())) {
+      cleaned.push(entry.trim());
+    }
+  }
+  if (!cleaned.length && typeof imagem === 'string' && imagem.trim()) {
+    cleaned.push(imagem.trim());
+  }
+  return {
+    imagens: cleaned,
+    imagem: cleaned[0] || '/assets/images/procurement-equipamentos.jpg'
+  };
+}
+
 // 10. Criar Nova Área de Actuação / Serviço
 app.post('/api/services', requireAdmin, async (req, res) => {
   try {
-    const { numero, slug, titulo, descricao, produtos_servicos, imagem, ordem, activo } = req.body;
+    const { numero, slug, titulo, descricao, produtos_servicos, imagem, imagens, ordem, activo } = req.body;
     if (!numero || !titulo || !descricao) {
       return res.status(400).json({ error: 'Número, Título e Descrição são obrigatórios.' });
     }
     const cleanSlug = slug || titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const media = normalizeServiceImages(imagens, imagem);
     const newService = await Service.create({
       numero,
       slug: cleanSlug,
       titulo,
       descricao,
       produtos_servicos: Array.isArray(produtos_servicos) ? produtos_servicos : (produtos_servicos ? produtos_servicos.split('\n').map(s => s.trim()).filter(Boolean) : []),
-      imagem: imagem || '/assets/images/procurement-equipamentos.jpg',
+      imagem: media.imagem,
+      imagens: media.imagens,
       ordem: Number(ordem) || 0,
       activo: activo !== false
     });
@@ -353,7 +375,8 @@ app.post('/api/services', requireAdmin, async (req, res) => {
 app.put('/api/services/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { numero, slug, titulo, descricao, produtos_servicos, imagem, ordem, activo } = req.body;
+    const { numero, slug, titulo, descricao, produtos_servicos, imagem, imagens, ordem, activo } = req.body;
+    const media = normalizeServiceImages(imagens, imagem);
     const updated = await Service.findByIdAndUpdate(
       id,
       {
@@ -362,7 +385,8 @@ app.put('/api/services/:id', requireAdmin, async (req, res) => {
         titulo,
         descricao,
         produtos_servicos: Array.isArray(produtos_servicos) ? produtos_servicos : (produtos_servicos ? produtos_servicos.split('\n').map(s => s.trim()).filter(Boolean) : []),
-        imagem,
+        imagem: media.imagem,
+        imagens: media.imagens,
         ordem: Number(ordem) || 0,
         activo: Boolean(activo)
       },

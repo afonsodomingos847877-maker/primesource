@@ -6,6 +6,7 @@ const API_BASE = '/api';
 let authToken = localStorage.getItem('ps_admin_token') || '';
 let currentQuotes = [];
 let currentServices = [];
+let currentServiceImages = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
@@ -480,43 +481,17 @@ function exportQuotesToCSV() {
 /* ==========================================================================
    5. Services Module (Áreas de Actuação)
    ========================================================================== */
-function initServicesModule() {
-  const addServiceBtn = document.getElementById('addServiceBtn');
-  const serviceModal = document.getElementById('serviceModal');
-  const closeServiceModalBtn = document.getElementById('closeServiceModalBtn');
-  const cancelServiceBtn = document.getElementById('cancelServiceBtn');
-  const serviceForm = document.getElementById('serviceForm');
-
-  const imageFileInput = document.getElementById('serviceImageFile');
-  const triggerImageUploadBtn = document.getElementById('triggerImageUploadBtn');
-  const triggerImageUploadChangeBtn = document.getElementById('triggerImageUploadChangeBtn');
-  const removeServiceImageBtn = document.getElementById('removeServiceImageBtn');
-  const imagePreviewContainer = document.getElementById('serviceImagePreviewContainer');
-  const imagePreview = document.getElementById('serviceImagePreview');
-  const serviceImageInput = document.getElementById('serviceImagem');
-
-  // Trigger manual image file dialog
-  triggerImageUploadBtn?.addEventListener('click', () => imageFileInput?.click());
-  triggerImageUploadChangeBtn?.addEventListener('click', () => imageFileInput?.click());
-
-  // Handle image upload and client-side optimization
-  imageFileInput?.addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione um ficheiro de imagem válido (JPG, PNG ou WebP).');
-      return;
-    }
-
+function optimizeImageFile(file, maxDim = 960, quality = 0.8) {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Falha ao ler o ficheiro.'));
     reader.onload = (event) => {
       const img = new Image();
+      img.onerror = () => reject(new Error('Imagem inválida.'));
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-        const maxDim = 1200;
 
         if (width > maxDim || height > maxDim) {
           if (width > height) {
@@ -532,35 +507,114 @@ function initServicesModule() {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-
-        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-        serviceImageInput.value = optimizedBase64;
-        imagePreview.src = optimizedBase64;
-        imagePreviewContainer.style.display = 'block';
-        showToast('Imagem carregada com sucesso!', 'success');
+        resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   });
+}
 
-  // Remove image
-  removeServiceImageBtn?.addEventListener('click', () => {
-    serviceImageInput.value = '';
-    imagePreview.src = '';
-    imagePreviewContainer.style.display = 'none';
-    if (imageFileInput) imageFileInput.value = '';
+function renderServiceImagesGallery() {
+  const gallery = document.getElementById('serviceImagesGallery');
+  if (!gallery) return;
+
+  if (!currentServiceImages.length) {
+    gallery.innerHTML = '';
+    gallery.style.display = 'none';
+    return;
+  }
+
+  gallery.style.display = 'grid';
+  gallery.innerHTML = currentServiceImages.map((src, idx) => `
+    <div class="service-gallery-item">
+      <span class="service-gallery-order ${idx === 0 ? 'primary' : ''}">
+        ${idx === 0 ? 'Principal' : `#${idx + 1}`}
+      </span>
+      <img src="${escapeHtml(src)}" alt="Imagem ${idx + 1}" class="service-gallery-thumb">
+      <div class="service-gallery-actions">
+        <div style="display: flex; gap: 3px;">
+          <button type="button" class="service-gallery-btn" onclick="moveServiceImage(${idx}, -1)" title="Mover para trás" ${idx === 0 ? 'disabled style="opacity:0.4;cursor:default;"' : ''}>&larr;</button>
+          <button type="button" class="service-gallery-btn" onclick="moveServiceImage(${idx}, 1)" title="Mover para a frente" ${idx === currentServiceImages.length - 1 ? 'disabled style="opacity:0.4;cursor:default;"' : ''}>&rarr;</button>
+        </div>
+        <button type="button" class="service-gallery-btn remove" onclick="removeServiceImageAt(${idx})" title="Remover imagem">&times;</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.moveServiceImage = function(index, delta) {
+  const target = index + delta;
+  if (target < 0 || target >= currentServiceImages.length) return;
+  const [item] = currentServiceImages.splice(index, 1);
+  currentServiceImages.splice(target, 0, item);
+  renderServiceImagesGallery();
+};
+
+window.removeServiceImageAt = function(index) {
+  currentServiceImages.splice(index, 1);
+  renderServiceImagesGallery();
+};
+
+function initServicesModule() {
+  const addServiceBtn = document.getElementById('addServiceBtn');
+  const serviceModal = document.getElementById('serviceModal');
+  const closeServiceModalBtn = document.getElementById('closeServiceModalBtn');
+  const cancelServiceBtn = document.getElementById('cancelServiceBtn');
+  const serviceForm = document.getElementById('serviceForm');
+
+  const imageFileInput = document.getElementById('serviceImageFile');
+  const triggerImageUploadBtn = document.getElementById('triggerImageUploadBtn');
+  const manualImageUrlInput = document.getElementById('manualImageUrlInput');
+  const addManualImageUrlBtn = document.getElementById('addManualImageUrlBtn');
+
+  // Trigger manual image file dialog (supports single & multiple files)
+  triggerImageUploadBtn?.addEventListener('click', () => imageFileInput?.click());
+
+  // Handle multi-image upload and client-side optimization
+  imageFileInput?.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const invalid = files.find(f => !f.type.startsWith('image/'));
+    if (invalid) {
+      showToast('Selecione apenas ficheiros de imagem válidos (JPG, PNG ou WebP).', 'error');
+      imageFileInput.value = '';
+      return;
+    }
+
+    const originalLabel = triggerImageUploadBtn.innerHTML;
+    triggerImageUploadBtn.disabled = true;
+    triggerImageUploadBtn.textContent = `A processar ${files.length} ${files.length === 1 ? 'imagem' : 'imagens'}...`;
+
+    try {
+      let addedCount = 0;
+      for (const file of files) {
+        const optimized = await optimizeImageFile(file);
+        currentServiceImages.push(optimized);
+        addedCount++;
+      }
+      renderServiceImagesGallery();
+      showToast(`${addedCount} ${addedCount === 1 ? 'imagem adicionada' : 'imagens adicionadas'} à galeria!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Erro ao processar imagem.', 'error');
+    } finally {
+      triggerImageUploadBtn.disabled = false;
+      triggerImageUploadBtn.innerHTML = originalLabel;
+      imageFileInput.value = '';
+    }
   });
 
-  // Manual URL input sync
-  serviceImageInput?.addEventListener('input', () => {
-    const val = serviceImageInput.value.trim();
-    if (val) {
-      imagePreview.src = val;
-      imagePreviewContainer.style.display = 'block';
-    } else {
-      imagePreviewContainer.style.display = 'none';
+  // Add manual URL/path to gallery
+  addManualImageUrlBtn?.addEventListener('click', () => {
+    const url = (manualImageUrlInput?.value || '').trim();
+    if (!url) return;
+    if (!currentServiceImages.includes(url)) {
+      currentServiceImages.push(url);
+      renderServiceImagesGallery();
+      showToast('URL de imagem adicionada!', 'success');
     }
+    manualImageUrlInput.value = '';
   });
 
   closeServiceModalBtn.addEventListener('click', () => serviceModal.style.display = 'none');
@@ -573,10 +627,10 @@ function initServicesModule() {
     document.getElementById('serviceTitulo').value = '';
     document.getElementById('serviceSlug').value = '';
     document.getElementById('serviceOrdem').value = currentServices.length + 1;
-    document.getElementById('serviceImagem').value = '/assets/images/procurement-equipamentos.jpg';
-    if (imagePreview) imagePreview.src = '/assets/images/procurement-equipamentos.jpg';
-    if (imagePreviewContainer) imagePreviewContainer.style.display = 'block';
+    currentServiceImages = ['/assets/images/procurement-equipamentos.jpg'];
+    renderServiceImagesGallery();
     if (imageFileInput) imageFileInput.value = '';
+    if (manualImageUrlInput) manualImageUrlInput.value = '';
     document.getElementById('serviceDescricao').value = '';
     document.getElementById('serviceProdutos').value = '';
     document.getElementById('serviceActivo').checked = true;
@@ -585,17 +639,34 @@ function initServicesModule() {
 
   serviceForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!currentServiceImages.length) {
+      showToast('Adicione pelo menos 1 imagem para a área de actuação.', 'error');
+      return;
+    }
+
     const serviceId = document.getElementById('serviceFormId').value;
     const payload = {
       numero: document.getElementById('serviceNumero').value.trim(),
       titulo: document.getElementById('serviceTitulo').value.trim(),
       slug: document.getElementById('serviceSlug').value.trim(),
       ordem: Number(document.getElementById('serviceOrdem').value),
-      imagem: document.getElementById('serviceImagem').value.trim(),
+      imagem: currentServiceImages[0],
+      imagens: currentServiceImages,
       descricao: document.getElementById('serviceDescricao').value.trim(),
       produtos_servicos: document.getElementById('serviceProdutos').value.split('\n').map(s => s.trim()).filter(Boolean),
       activo: document.getElementById('serviceActivo').checked
     };
+
+    const payloadBytes = new Blob([JSON.stringify(payload)]).size;
+    if (payloadBytes > 4 * 1024 * 1024) {
+      showToast('O conjunto de imagens excede 4 MB. Remova ou reduza algumas imagens.', 'error');
+      return;
+    }
+
+    const saveBtn = document.getElementById('saveServiceBtn');
+    const origSaveText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'A guardar...';
 
     const isEdit = Boolean(serviceId);
     const url = isEdit ? `${API_BASE}/services/${serviceId}` : `${API_BASE}/services`;
@@ -614,11 +685,14 @@ function initServicesModule() {
         loadServices();
         loadStats();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         showToast(err.error || 'Erro ao guardar serviço.', 'error');
       }
     } catch (err) {
       showToast('Erro de comunicação.', 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = origSaveText;
     }
   });
 }
@@ -626,7 +700,7 @@ function initServicesModule() {
 async function loadServices() {
   const grid = document.getElementById('servicesCardsGrid');
   try {
-    const res = await fetch(`${API_BASE}/services`);
+    const res = await fetch(`${API_BASE}/services?all=true`);
     currentServices = await res.json();
 
     if (!currentServices.length) {
@@ -636,17 +710,20 @@ async function loadServices() {
 
     grid.innerHTML = currentServices.map(s => {
       const itemsCount = (s.produtos_servicos || []).length;
+      const imagesList = (Array.isArray(s.imagens) && s.imagens.length) ? s.imagens : (s.imagem ? [s.imagem] : []);
+      const thumbImg = imagesList[0] || '/assets/images/procurement-equipamentos.jpg';
       return `
         <div class="service-admin-card">
           <div class="service-admin-media">
             <span class="service-admin-badge">${escapeHtml(s.numero)}</span>
-            <img src="${escapeHtml(s.imagem || '/assets/images/procurement-equipamentos.jpg')}" alt="${escapeHtml(s.titulo)}" class="service-admin-img">
+            <img src="${escapeHtml(thumbImg)}" alt="${escapeHtml(s.titulo)}" class="service-admin-img">
+            ${imagesList.length > 1 ? `<span class="service-admin-media-count">${imagesList.length} fotos</span>` : ''}
           </div>
           <div class="service-admin-body">
             <h4 class="service-admin-title">${escapeHtml(s.titulo)}</h4>
             <p class="service-admin-desc">${escapeHtml(s.descricao)}</p>
             <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem;">
-              <strong>${itemsCount}</strong> itens / equipamentos listados
+              <strong>${itemsCount}</strong> itens &bull; <strong>${imagesList.length}</strong> ${imagesList.length === 1 ? 'imagem' : 'imagens'}
             </div>
             <div class="service-admin-footer">
               <span class="status-badge ${s.activo !== false ? 'concluido' : 'pendente'}">
@@ -676,16 +753,17 @@ window.editService = function(serviceId) {
   document.getElementById('serviceTitulo').value = s.titulo || '';
   document.getElementById('serviceSlug').value = s.slug || '';
   document.getElementById('serviceOrdem').value = s.ordem || 1;
-  const imgVal = s.imagem || '';
-  document.getElementById('serviceImagem').value = imgVal;
-  const imgPrev = document.getElementById('serviceImagePreview');
-  const imgPrevCont = document.getElementById('serviceImagePreviewContainer');
-  if (imgVal && imgPrev && imgPrevCont) {
-    imgPrev.src = imgVal;
-    imgPrevCont.style.display = 'block';
-  } else if (imgPrevCont) {
-    imgPrevCont.style.display = 'none';
-  }
+
+  currentServiceImages = (Array.isArray(s.imagens) && s.imagens.length)
+    ? [...s.imagens]
+    : (s.imagem ? [s.imagem] : []);
+  renderServiceImagesGallery();
+
+  const fileInput = document.getElementById('serviceImageFile');
+  const manualUrlInput = document.getElementById('manualImageUrlInput');
+  if (fileInput) fileInput.value = '';
+  if (manualUrlInput) manualUrlInput.value = '';
+
   document.getElementById('serviceDescricao').value = s.descricao || '';
   document.getElementById('serviceProdutos').value = (s.produtos_servicos || []).join('\n');
   document.getElementById('serviceActivo').checked = s.activo !== false;
