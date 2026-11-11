@@ -866,7 +866,8 @@ body.admin-body {
   align-items: center;
   justify-content: center;
   z-index: 500;
-  padding: 1.5rem;
+  padding: 1.25rem;
+  overflow-y: auto;
   animation: fadeIn 0.2s ease;
 }
 
@@ -874,7 +875,7 @@ body.admin-body {
   background: #ffffff;
   border-radius: 14px;
   width: 100%;
-  max-width: 620px;
+  max-width: 640px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -882,12 +883,21 @@ body.admin-body {
   overflow: hidden;
 }
 
+.modal-dialog form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-header {
-  padding: 1.25rem 1.75rem;
+  padding: 1.15rem 1.75rem;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -910,8 +920,30 @@ body.admin-body {
 }
 
 .modal-body {
-  padding: 1.75rem;
+  padding: 1.5rem 1.75rem;
   overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .modal-footer {
@@ -922,6 +954,7 @@ body.admin-body {
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
