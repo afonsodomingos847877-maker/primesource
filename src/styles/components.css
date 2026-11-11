@@ -1902,22 +1902,147 @@
 
 @media (max-width: 640px) {
   .highlights-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    padding: 1rem 0.85rem;
   }
   .highlight-item {
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.35rem;
     border-right: none;
-    border-bottom: 1px solid var(--slate-200);
-    padding-bottom: 1rem;
-  }
-  .highlight-item:last-child {
     border-bottom: none;
   }
+  .highlight-icon-box {
+    width: 36px;
+    height: 36px;
+  }
+  .highlight-icon-box svg {
+    width: 18px;
+    height: 18px;
+  }
+  .highlight-title {
+    font-size: 0.86rem;
+    line-height: 1.25;
+  }
+  .highlight-desc {
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
+  /* Services: 2 columns on mobile */
   .services-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
+  .service-card {
+    min-width: 0;
+    border-radius: var(--radius-md);
+  }
+  .service-card-media {
+    height: 120px;
+  }
+  .service-num-badge {
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.72rem;
+    padding: 2px 7px;
+  }
+  .service-carousel-dots {
+    bottom: 6px;
+    padding: 3px 6px;
+    gap: 4px;
+  }
+  .service-carousel-dot {
+    width: 5px;
+    height: 5px;
+  }
+  .service-carousel-dot.is-active {
+    width: 12px;
+  }
+  .service-card-body {
+    padding: 0.85rem 0.75rem;
+  }
+  .service-card-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.25;
+  }
+  .service-card-desc {
+    font-size: 0.76rem;
+    line-height: 1.45;
+    margin-bottom: 0.6rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .service-card-list {
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .service-card-list-item {
+    font-size: 0.72rem;
+    gap: 0.3rem;
+    line-height: 1.3;
+  }
+  .service-card-footer {
+    padding-top: 0.65rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+  }
+  .service-card-link {
+    font-size: 0.76rem;
+    justify-content: center;
+  }
+  .service-card-footer .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.76rem;
+  }
+
+  /* Pillars & Cards: 2 columns on mobile */
   .pillars-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
+  .pillar-card {
+    min-width: 0;
+    padding: 1.15rem 0.85rem;
+    border-radius: var(--radius-md);
+  }
+  .pillar-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0.75rem;
+  }
+  .pillar-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .pillar-badge {
+    font-size: 0.68rem;
+    margin-bottom: 0.2rem;
+  }
+  .pillar-title {
+    font-size: 0.96rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.25;
+  }
+  .pillar-benefit {
+    font-size: 0.78rem;
+    margin-bottom: 0.45rem;
+    line-height: 1.3;
+  }
+  .pillar-offer {
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -1930,6 +2055,14 @@
   }
   .commitment-card {
     padding: 2.5rem 1.5rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .services-grid,
+  .pillars-grid,
+  .highlights-grid {
+    grid-template-columns: 1fr;
   }
 }
 
